@@ -16,6 +16,9 @@ import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.BitmapDescriptorFactory
 import com.google.android.gms.maps.model.LatLng
 import com.google.android.gms.maps.model.MarkerOptions
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 
 class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
 
@@ -30,8 +33,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             map.isMyLocationEnabled = true
             getLocationUpdates()
             startLocationUpdates()
-        }
-        else
+        } else
             ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION), LOCATION_PERMISSION_REQUEST)
         // asking the user to allow or deny the device location
     }
@@ -51,13 +53,13 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
                     return
                 }
                 map.isMyLocationEnabled = true
-            }
-            else {
+            } else {
                 Toast.makeText(this, "User has not granted location access permission", Toast.LENGTH_LONG).show()
                 finish()
             }
         }
     }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_maps)
@@ -68,6 +70,7 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
 
     }
+
     private fun getLocationUpdates() {
         locationRequest = LocationRequest()
         locationRequest.interval = 30000
@@ -78,15 +81,23 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
             override fun onLocationResult(locationResult: LocationResult) {
                 if (locationResult.locations.isNotEmpty()) {
                     val location = locationResult.lastLocation
-                    if (location != null) {
-                        val latLng = LatLng(location.latitude, location.longitude)
-                        val markerOptions = MarkerOptions().position(latLng)
-                        map.addMarker(markerOptions)
-                        map.animateCamera(CameraUpdateFactory.newLatLngZoom(latLng, 15f))
-                    }
+
+                    lateinit var databaseRef: DatabaseReference
+                    databaseRef = Firebase.database.reference
+                    val locationlogging = LocationLogging(location.latitude, location.longitude)
+                    databaseRef.child("userlocation").setValue(locationlogging)
+                            .addOnSuccessListener {
+                                Toast.makeText(applicationContext, "Locations written into the database", Toast.LENGTH_LONG).show()
+                            }
+                            .addOnFailureListener {
+                                Toast.makeText(applicationContext, "Error occured while writing the locations", Toast.LENGTH_LONG).show()
+                            }
+
+
                 }
             }
         }
+
     }
 
     private fun startLocationUpdates() {
@@ -119,9 +130,10 @@ class MapsActivity : AppCompatActivity(), OnMapReadyCallback {
         getLocationAccess()
 
         // Add a marker in Sweden and move the camera
-  /*      val zoomLevel = 15f
+        /*      val zoomLevel = 15f
         val Stockholm = LatLng(59.334591, 18.063240)
         mMap.addMarker(MarkerOptions().position(Stockholm).title("Marker in Sweden").icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)))
         mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(Stockholm,zoomLevel)) */
     }
 }
+
